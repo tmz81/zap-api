@@ -6,6 +6,8 @@ let qrCode = null;
 let isAuthenticated = null;
 let isReady = null;
 let authFailure = null;
+let retryCount = 0;
+const maxRetries = 3;
 
 const client = new Client({
   authStrategy: new LocalAuth(),
@@ -31,8 +33,12 @@ const handleAuthFailure = (msg) => {
   authFailure = msg;
 
   // Evita loop de reinicialização
-  if (!isReady) {
-    client.initialize();
+  if (!isReady && retryCount < maxRetries) {
+    retryCount++;
+    console.log(`Try restart client... Try ${retryCount}`);
+    setTimeout(() => client.initialize(), 5000);
+  } else if (retryCount >= maxRetries) {
+    console.error("Limite try restart client.");
   }
 };
 
@@ -41,19 +47,19 @@ const handleClientReady = () => {
   isReady = true;
 };
 
+const cleanDirectory = (dirPath) => {
+  if (fs.existsSync(dirPath)) {
+    fs.rmSync(dirPath, { recursive: true, force: true });
+    console.log(`${dirPath} removed!`);
+  }
+};
+
 const handleDisconnected = () => {
   const authDir = path.join(__dirname, ".wwebjs_auth");
   const cacheDir = path.join(__dirname, ".wwebjs_cache");
 
-  if (fs.existsSync(authDir)) {
-    fs.rmSync(authDir, { recursive: true, force: true });
-    console.log(".wwebjs_auth removed!");
-  }
-
-  if (fs.existsSync(cacheDir)) {
-    fs.rmSync(cacheDir, { recursive: true, force: true });
-    console.log(".wwebjs_cache removed!");
-  }
+  cleanDirectory(authDir);
+  cleanDirectory(cacheDir);
 
   qrCode = null;
   isAuthenticated = null;
@@ -110,9 +116,10 @@ const sendMessage = async (req, res) => {
   }
 };
 
-const restartClient = () => {
+const restartClient = async () => {
   if (client) {
-    client.destroy();
+    await client.destroy();
+    console.log("Client destroy, restar application");
     client.initialize();
   }
 };
