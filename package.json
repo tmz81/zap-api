@@ -2,7 +2,7 @@
   "name": "whatsapp-api",
   "version": "1.0.0",
   "description": "API para integração com WhatsApp usando whatsapp-web.js",
-  "main": "src/server.js",
+  "main": "server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
